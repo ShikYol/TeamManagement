@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        async function fetchUsers() {
+            const response = await fetch('../backend/get_users.php');
+            const users = await response.json();
+            const userDropdown = document.getElementById('userDropdown');
+            userDropdown.innerHTML = '<option value="">Select a User</option>';
+            users.forEach(user => {
+                const option = `<option value="${user.id}">${user.first_name} ${user.last_name}</option>`;
+                userDropdown.innerHTML += option;
+            });
+        }
+
+        async function fetchUnassignedTasks() {
+            const response = await fetch('../backend/get_UnassignedTasks.php');
+            const tasks = await response.json();
+            const taskDropdown = document.getElementById('taskDropdown');
+            taskDropdown.innerHTML = '<option value="">Select a Task</option>';
+            tasks.forEach(task => {
+                const option = `<option value="${task.id}">${task.task_name}</option>`;
+                taskDropdown.innerHTML += option;
+            });
+        }
+
+        async function fetchDeletableTasks() {
+            const response = await fetch('../backend/get_UnassignedTasks.php');
+            const tasks = await response.json();
+            const deleteTaskDropdown = document.getElementById('deleteTaskDropdown');
+            deleteTaskDropdown.innerHTML = '<option value="">Select a Task</option>';
+            tasks.forEach(task => {
+                const option = `<option value="${task.id}">${task.task_name}</option>`;
+                deleteTaskDropdown.innerHTML += option;
+            });
+        }
+
+        async function assignTask(e) {
+            e.preventDefault();
+            const userDropdown = document.getElementById('userDropdown');
+            const taskDropdown = document.getElementById('taskDropdown');
+
+            const formData = new FormData();
+            formData.append('user_id', userDropdown.value);
+            formData.append('task_id', taskDropdown.value);
+
+            const response = await fetch('../backend/assign_task.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message);
+
+            if (result.message === 'Task assigned successfully.') {
+                fetchUnassignedTasks();
+                fetchDeletableTasks();
+            }
+        }
+
+        async function deleteTask(e) {
+            e.preventDefault();
+            const deleteTaskDropdown = document.getElementById('deleteTaskDropdown');
+
+            const formData = new FormData();
+            formData.append('task_id', deleteTaskDropdown.value);
+
+            const response = await fetch('../backend/delete_task.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message);
+
+            if (result.message === 'Task deleted successfully.') {
+                fetchDeletableTasks();
+                fetchUnassignedTasks();
+            }
+        }
+
+        function logout() {
+            fetch('../backend/logout.php', {
+                method: 'POST',
+            }).then(() => {
+                window.location.href = '../frontend/signin.html';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchUsers();
+            fetchUnassignedTasks();
+            fetchDeletableTasks();
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <img src="icon.jpg" alt="Logo" class="icon">
+        <h1>Admin Dashboard</h1>
+    </header>
+    <main>
+        <section>
+            <form id="assignTaskForm">
+                <h2>Assign Task</h2>
+                <select id="userDropdown" name="user_id" required></select>
+                <select id="taskDropdown" name="task_id" required></select>
+                <button type="submit">Assign Task</button>
+            </form>
+        </section>
+        <section>
+            <form id="deleteTaskForm">
+                <h2>Delete Task</h2>
+                <select id="deleteTaskDropdown" name="task_id" required></select>
+                <button type="submit">Delete Task</button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <button onclick="logout()" style="position: absolute; bottom: 10px; right: 10px;">Logout</button>
+        <p>© 2024 Task Management System</p>
+    </footer>
+    <script>
+        document.getElementById('assignTaskForm').addEventListener('submit', assignTask);
+        document.getElementById('deleteTaskForm').addEventListener('submit', deleteTask);
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        async function fetchUserTasks() {
+            const response = await fetch('../backend/get_tasks.php');
+            const tasks = await response.json();
+
+            const taskTable = document.getElementById('taskTable');
+            const taskDropdown = document.getElementById('taskDropdown');
+            taskTable.innerHTML = '';
+            taskDropdown.innerHTML = '<option value="">Select a Task</option>';
+
+            tasks.forEach(task => {
+                const row = `
+                    <tr>
+                        <td>${task.task_name}</td>
+                        <td>${task.task_description}</td>
+                        <td>${task.task_deadline}</td>
+                        <td>
+                            <select data-task-id="${task.id}" class="status-dropdown">
+                                <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                                <option value="Late" ${task.status === 'Late' ? 'selected' : ''}>Late</option>
+                                <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>Completed</option>
+                            </select>
+                        </td>
+                        <td><button class="update-status-btn" data-task-id="${task.id}">Update</button></td>
+                    </tr>
+                `;
+                taskTable.innerHTML += row;
+
+                const option = `<option value="${task.id}">${task.task_name}</option>`;
+                taskDropdown.innerHTML += option;
+            });
+
+            addUpdateEventListeners();
+        }
+
+        function addUpdateEventListeners() {
+            const buttons = document.querySelectorAll('.update-status-btn');
+            buttons.forEach(button => {
+                button.addEventListener('click', async function () {
+                    const taskId = this.getAttribute('data-task-id');
+                    const dropdown = document.querySelector(`.status-dropdown[data-task-id="${taskId}"]`);
+                    const newStatus = dropdown.value;
+
+                    const formData = new FormData();
+                    formData.append('task_id', taskId);
+                    formData.append('status', newStatus);
+
+                    const response = await fetch('../backend/update_task_status.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+                    alert(result.message);
+
+                    if (result.message === "Task status updated successfully.") {
+                        fetchUserTasks();
+                    }
+                });
+            });
+        }
+
+        async function createTask(e) {
+            e.preventDefault();
+
+            const form = document.getElementById('createTaskForm');
+            const formData = new FormData(form);
+
+            const response = await fetch('../backend/create_task.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message);
+
+            if (result.message === 'Task created successfully.') {
+                fetchUserTasks();
+            }
+        }
+
+        function logout() {
+            fetch('../backend/logout.php', {
+                method: 'POST',
+            }).then(() => {
+                window.location.href = '../frontend/signin.html';
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchUserTasks);
+    </script>
+</head>
+<body>
+    <header>
+        <img src="icon.jpg" alt="Logo" class="icon">
+        <h1>User Dashboard</h1>
+    </header>
+    <main>
+        <section>
+            <h2>Your Tasks</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTable"></tbody>
+            </table>
+        </section>
+        <section>
+            <h2>Update Task</h2>
+            <form action="../backend/update_task.php" method="POST">
+                <select id="taskDropdown" name="task_id" required></select>
+                <input type="text" name="task_name" placeholder="Task Name" required>
+                <textarea name="task_description" placeholder="Task Description" required></textarea>
+                <input type="number" name="task_deadline" placeholder="Deadline (1-10)" min="1" max="10" required>
+                <button type="submit">Update Task</button>
+            </form>
+        </section>
+        <section>
+            <h2>Create Task</h2>
+            <form id="createTaskForm">
+                <input type="text" name="task_name" placeholder="Task Name" required>
+                <textarea name="task_description" placeholder="Task Description" required></textarea>
+                <input type="number" name="task_deadline" placeholder="Deadline (1-10)" min="1" max="10" required>
+                <button type="submit">Submit Task</button>
+            </form>
+        </section>
+    </main>
+    <footer>
+        <button onclick="logout()" style="position: absolute; bottom: 10px; right: 10px;">Logout</button>
+        <p>© 2024 Task Management System</p>
+    </footer>
+    <script>
+        document.getElementById('createTaskForm').addEventListener('submit', createTask);
+    </script>
+</body>
+</html>
